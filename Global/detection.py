@@ -1,18 +1,23 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import os
-import numpy as np
 import argparse
-import time
-
-import torch
-import torchvision as tv
-import torch.nn.functional as F
-from detection_util.util import *
-from detection_models import networks
-from PIL import Image, ImageFile
+import gc
 import json
+import os
+import time
+import warnings
+
+import numpy as np
+import torch
+import torch.nn.functional as F
+import torchvision as tv
+from PIL import Image, ImageFile
+
+from detection_models import networks
+from detection_util.util import *
+
+warnings.filterwarnings("ignore", category=UserWarning)
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
@@ -26,11 +31,7 @@ def data_transforms(img, full_size, method=Image.BICUBIC):
             return img
         return img.resize((w, h), method)
 
-    if full_size == "resize_256":
-        return img.resize((config.image_size, config.image_size), method)
-
-    if full_size == "scale_256":
-
+    elif full_size == "scale_256":
         ow, oh = img.size
         pw, ph = ow, oh
         if ow < oh:
@@ -45,6 +46,21 @@ def data_transforms(img, full_size, method=Image.BICUBIC):
         if (h == ph) and (w == pw):
             return img
         return img.resize((w, h), method)
+
+
+def scale_tensor(img_tensor, default_scale=256):
+    _, _, w, h = img_tensor.shape
+    if w < h:
+        ow = default_scale
+        oh = h / w * default_scale
+    else:
+        oh = default_scale
+        ow = w / h * default_scale
+
+    oh = int(round(oh / 16) * 16)
+    ow = int(round(ow / 16) * 16)
+
+    return F.interpolate(img_tensor, [ow, oh], mode="bilinear")
 
 
 def blend_mask(img, mask):
@@ -72,12 +88,13 @@ def main(config):
     )
 
     ## load model
-    checkpoint_path = "./checkpoints/detection/FT_Epoch_latest.pt"
+    checkpoint_path = os.path.join(os.path.dirname(__file__), "checkpoints/detection/FT_Epoch_latest.pt")
     checkpoint = torch.load(checkpoint_path, map_location="cpu")
     model.load_state_dict(checkpoint["model_state"])
     print("model weights loaded")
 
-    model.to(config.GPU)
+    if config.GPU >= 0:
+        model.to(config.GPU)
     model.eval()
 
     ## dataloader and transformation
@@ -99,47 +116,49 @@ def main(config):
 
     idx = 0
 
+    results = []
     for image_name in imagelist:
 
         idx += 1
 
         print("processing", image_name)
 
-        results = []
         scratch_file = os.path.join(config.test_path, image_name)
         if not os.path.isfile(scratch_file):
             print("Skipping non-file %s" % image_name)
             continue
         scratch_image = Image.open(scratch_file).convert("RGB")
-
         w, h = scratch_image.size
 
         transformed_image_PIL = data_transforms(scratch_image, config.input_size)
-
         scratch_image = transformed_image_PIL.convert("L")
         scratch_image = tv.transforms.ToTensor()(scratch_image)
-
         scratch_image = tv.transforms.Normalize([0.5], [0.5])(scratch_image)
-
         scratch_image = torch.unsqueeze(scratch_image, 0)
-        scratch_image = scratch_image.to(config.GPU)
+        _, _, ow, oh = scratch_image.shape
+        scratch_image_scale = scale_tensor(scratch_image)
 
-        P = torch.sigmoid(model(scratch_image))
+        if config.GPU >= 0:
+            scratch_image_scale = scratch_image_scale.to(config.GPU)
+        with torch.no_grad():
+            P = torch.sigmoid(model(scratch_image_scale))
 
         P = P.data.cpu()
+        P = F.interpolate(P, [ow, oh], mode="nearest")
 
         tv.utils.save_image(
             (P >= 0.4).float(),
-            os.path.join(output_dir, image_name[:-4] + ".png",),
+            os.path.join(
+                output_dir,
+                image_name[:-4] + ".png",
+            ),
             nrow=1,
             padding=0,
             normalize=True,
         )
         transformed_image_PIL.save(os.path.join(input_dir, image_name[:-4] + ".png"))
-        # single_mask=np.array((P>=0.4).float())[0,0,:,:]
-        # RGB_mask=np.stack([single_mask,single_mask,single_mask],axis=2)
-        # blend_output=blend_mask(transformed_image_PIL,RGB_mask)
-        # blend_output.save(os.path.join(blend_output_dir,image_name[:-4]+'.png'))
+        gc.collect()
+        torch.cuda.empty_cache()
 
 
 if __name__ == "__main__":

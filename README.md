@@ -2,7 +2,7 @@
 
 <img src='imgs/0001.jpg'/>
 
-### [Project Page](http://raywzy.com/Old_Photo/) | [Paper (CVPR version)](https://arxiv.org/abs/2004.09484) | [Paper (Journal version)](https://arxiv.org/pdf/2009.07047v1.pdf) | [Pretrained Model](https://portland-my.sharepoint.com/:f:/g/personal/ziyuwan2-c_ad_cityu_edu_hk/Eh1gtjfLiWtLiBDGZhaTvokBvDUdvA5j49f_NpL_Pp9FPA?e=7EddTf) | [Colab Demo](https://colab.research.google.com/drive/1NEm6AsybIiC5TwTU_4DqDkQO0nFRB-uA?usp=sharing) :fire:
+### [Project Page](http://raywzy.com/Old_Photo/) | [Paper (CVPR version)](https://arxiv.org/abs/2004.09484) | [Paper (Journal version)](https://arxiv.org/pdf/2009.07047v1.pdf) | [Pretrained Model](https://hkustconnect-my.sharepoint.com/:f:/g/personal/bzhangai_connect_ust_hk/Em0KnYOeSSxFtp4g_dhWdf0BdeT3tY12jIYJ6qvSf300cA?e=nXkJH2) | [Colab Demo](https://colab.research.google.com/drive/1NEm6AsybIiC5TwTU_4DqDkQO0nFRB-uA?usp=sharing) :fire:
 
 **Bringing Old Photos Back to Life, CVPR2020 (Oral)**
 
@@ -16,6 +16,9 @@
 [Jing Liao](https://liaojing.github.io/html/)<sup>1</sup>,
 [Fang Wen](https://www.microsoft.com/en-us/research/people/fangwen/)<sup>2</sup> <br>
 <sup>1</sup>City University of Hong Kong, <sup>2</sup>Microsoft Research Asia, <sup>3</sup>Microsoft Cloud AI, <sup>4</sup>USTC
+
+## Notes of this project
+The code originates from our research project and the aim is to demonstrate the research idea, so we have not optimized it from a product perspective. And we will spend time to address some common issues, such as out of memory issue, limited resolution, but will not involve too much in engineering problems, such as speedup of the inference, fastapi deployment and so on. We welcome volunteers to contribute to this project to make it more usable for practical application.
 
 ## New
 You can now play with our [Colab](https://colab.research.google.com/drive/1NEm6AsybIiC5TwTU_4DqDkQO0nFRB-uA?usp=sharing) and try it on your photos. 
@@ -71,7 +74,7 @@ pip install -r requirements.txt
 
 ## How to use?
 
-**Note**:GPU can be set 0 or 0,1,2 or 0,2; use -1 for CPU
+**Note**: GPU can be set 0 or 0,1,2 or 0,2; use -1 for CPU
 
 ### 1) Full Pipeline
 
